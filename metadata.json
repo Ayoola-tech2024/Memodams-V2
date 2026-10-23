@@ -1,0 +1,6 @@
+{
+  "name": "MemoDams - Secure Digital Vault & Notes",
+  "description": "A secure personal digital vault and notes app with markdown support, tags, photo gallery, video vault, file storage, and QR code sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

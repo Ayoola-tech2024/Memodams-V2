@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile and vault security settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "vaultPinHash": { "type": "string", "maxLength": 128 },
+        "autoLockMinutes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "createdAt", "updatedAt"]
+    },
+    "note": {
+      "title": "Note",
+      "description": "Personal note document with markdown, tags, and security flags",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "content": { "type": "string", "maxLength": 500000 },
+        "category": { "type": "string", "maxLength": 64 },
+        "tags": { "type": "array" },
+        "color": { "type": "string", "maxLength": 32 },
+        "isPinned": { "type": "boolean" },
+        "isVaultLocked": { "type": "boolean" },
+        "isArchived": { "type": "boolean" },
+        "isTrash": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "createdAt", "updatedAt"]
+    },
+    "vaultMedia": {
+      "title": "VaultMedia",
+      "description": "Multimedia photo, video, audio, and file storage records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "type": { "type": "string", "enum": ["photo", "video", "audio", "document"] },
+        "dataUrl": { "type": "string", "maxLength": 900000 },
+        "fileName": { "type": "string", "maxLength": 256 },
+        "fileSize": { "type": "number" },
+        "mimeType": { "type": "string", "maxLength": 128 },
+        "tags": { "type": "array" },
+        "isVaultLocked": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "type", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User preferences, profile, and master vault PIN settings"
+    },
+    "/notes/{noteId}": {
+      "schema": "note",
+      "description": "Encrypted and standard personal notes"
+    },
+    "/vaultMedia/{mediaId}": {
+      "schema": "vaultMedia",
+      "description": "Multimedia photos, videos, and secure file attachments"
+    }
+  }
+}

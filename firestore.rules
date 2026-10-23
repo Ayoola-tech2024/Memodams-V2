@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Diagnostics / Connectivity test check
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Validation for User profile & vault preferences
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('vaultPinHash' in data) || (data.vaultPinHash is string && data.vaultPinHash.size() <= 128))
+        && (!('autoLockMinutes' in data) || (data.autoLockMinutes is number && data.autoLockMinutes >= 0 && data.autoLockMinutes <= 1440))
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().id == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().id == existing().id;
+      allow delete: if false;
+    }
+
+    // Validation for Notes
+    function isValidNote(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.title is string && data.title.size() <= 256
+        && (!('content' in data) || (data.content is string && data.content.size() <= 500000))
+        && (!('category' in data) || (data.category is string && data.category.size() <= 64))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 50))
+        && (!('color' in data) || (data.color is string && data.color.size() <= 32))
+        && (!('isPinned' in data) || data.isPinned is bool)
+        && (!('isVaultLocked' in data) || data.isVaultLocked is bool)
+        && (!('isArchived' in data) || data.isArchived is bool)
+        && (!('isTrash' in data) || data.isTrash is bool)
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /notes/{noteId} {
+      allow get: if isSignedIn() && isValidId(noteId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(noteId) && incoming().userId == request.auth.uid && isValidNote(incoming());
+      allow update: if isSignedIn() && isValidId(noteId) && existing().userId == request.auth.uid && incoming().userId == existing().userId && isValidNote(incoming());
+      allow delete: if isSignedIn() && isValidId(noteId) && existing().userId == request.auth.uid;
+    }
+
+    // Validation for Vault Multimedia & Storage
+    function isValidMedia(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.title is string && data.title.size() <= 256
+        && data.type in ['photo', 'video', 'audio', 'document']
+        && (!('description' in data) || (data.description is string && data.description.size() <= 2048))
+        && (!('dataUrl' in data) || (data.dataUrl is string && data.dataUrl.size() <= 900000))
+        && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 256))
+        && (!('fileSize' in data) || data.fileSize is number)
+        && (!('mimeType' in data) || (data.mimeType is string && data.mimeType.size() <= 128))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 50))
+        && (!('isVaultLocked' in data) || data.isVaultLocked is bool)
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    match /vaultMedia/{mediaId} {
+      allow get: if isSignedIn() && isValidId(mediaId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(mediaId) && incoming().userId == request.auth.uid && isValidMedia(incoming());
+      allow update: if isSignedIn() && isValidId(mediaId) && existing().userId == request.auth.uid && incoming().userId == existing().userId && isValidMedia(incoming());
+      allow delete: if isSignedIn() && isValidId(mediaId) && existing().userId == request.auth.uid;
+    }
+  }
+}
